@@ -60,7 +60,7 @@ def save_sent_title(article_title):
     with open(SENT_TITLES_FILE, 'a', encoding='utf-8') as f: f.write(article_title + '\n')
 def get_gnews_news():
     print("正在从 GNews API 获取最新新闻...")
-    url = f"https://gnews.io/api/v4/search?q=\"детский спорт\" OR \"детское дзюдо\" OR \"детский футбол\" OR \"детская гимнастика\"&lang=ru&max=10&apikey=fa8bb60f8111d5d43d7b8e4b957aceed"
+    url = f"https://gnews.io/api/v4/search?q=спорт&lang=ru&max=10&apikey=fa8bb60f8111d5d43d7b8e4b957aceed"
     try:
         response = requests.get(url, timeout=15)
         if response.status_code != 200: return []
