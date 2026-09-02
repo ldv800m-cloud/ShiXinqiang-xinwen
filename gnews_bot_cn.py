@@ -38,6 +38,7 @@ class Config:
     send_interval_seconds: int = 15
     api_timeout: int = 30
     browser_timeout: int = 35000
+    max_search_results: int = 25  # ← ЭТУ СТРОКУ НУЖНО ДОБАВИТЬ 
     
     @classmethod
     def from_env(cls) -> 'Config':
@@ -259,11 +260,21 @@ class GNewsClient:
         }
         
         logger.info("🏆 Поиск семейных спортивных новостей...")
-        try:
-            response = self.session.get(f"{self.BASE_URL}/search", params=params, timeout=self.timeout)
-            response.raise_for_status()
-            data = response.json()
-            articles = data.get('articles', [])
+       try:
+    response = self.session.get(f"{self.BASE_URL}/search", params=params, timeout=self.timeout)
+    response.raise_for_status()
+    data = response.json()
+    articles = data.get('articles', [])
+    
+    if not articles:
+        logger.warning("⚠️ GNews API вернул пустой список статей.")
+        return []
+    
+    logger.info(f"📰 GNews API вернул {len(articles)} статей до фильтрации")
+    # ... остальная логика фильтрации ...
+except requests.exceptions.RequestException as e:
+    logger.error(f"❌ Ошибка запроса к GNews API: {e}")
+    return []
             
             family_articles = []
             for article in articles:
@@ -485,10 +496,22 @@ class FamilySportsBot:
                 await browser.close()
                 logger.info("🔒 Браузер закрыт")
     
-    def _filter_new_articles(self, articles: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        new_articles = []
-        sent_titles = self.store.load_titles()
-        sent_urls = self.store.load_urls()
+   def _filter_new_articles(self, articles: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    new_articles = []
+    sent_titles = self.store.load_titles()
+    sent_urls = self.store.load_urls()
+    
+    for article in articles:
+        url = article.get('url')
+        title = article.get('title')
+        # Проверяем, что url и title существуют и не отправлены ранее
+        if url and title and url not in sent_urls and title not in sent_titles:
+            new_articles.append(article)
+            # Останавливаемся, когда набрали нужное количество
+            if len(new_articles) >= self.config.max_articles_to_send:
+                break
+    
+    return new_articles
         
         for article in articles:
             url = article.get('url')
