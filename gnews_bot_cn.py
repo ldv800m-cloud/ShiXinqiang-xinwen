@@ -38,9 +38,6 @@ class Config:
     send_interval_seconds: int = 15
     api_timeout: int = 30
     browser_timeout: int = 35000
-    search_lang: str = "ru"
-    search_country: str = "ru"
-    max_search_results: int = 25
     
     @classmethod
     def from_env(cls) -> 'Config':
@@ -62,8 +59,6 @@ class Config:
 
 # --- Мотивационные фразы для детей ---
 class MotivationMessages:
-    """Мотивационные фразы для детей и родителей"""
-    
     FOR_CHILDREN = [
         "🌟 Ты можешь всё! Каждый день — это новый шаг к победе!",
         "💪 Спорт делает нас сильнее и увереннее!",
@@ -95,10 +90,8 @@ class MotivationMessages:
     def get_random_parent_motivation(cls) -> str:
         return random.choice(cls.FOR_PARENTS)
 
-# --- Полезные советы для родителей и детей ---
+# --- Полезные советы ---
 class SportsTips:
-    """Полезные советы по спорту для родителей и детей"""
-    
     TIPS = [
         "🥗 Спортсменам нужно есть 5-6 раз в день маленькими порциями",
         "💧 Пить воду нужно до, во время и после тренировки",
@@ -116,46 +109,36 @@ class SportsTips:
     def get_random_tip(cls) -> str:
         return random.choice(cls.TIPS)
 
-# --- Тексты для постов ---
+# --- Тексты ---
 class Messages:
-    """Все сообщения для родителей и детей"""
-    
     CHANNEL_TOPIC_HEADER = "🇷🇺 Спорт для детей и родителей"
     UNKNOWN_TIME = "Неизвестно"
     UNKNOWN_SOURCE = "Неизвестный источник"
     
-    NO_SUMMARY = "📖 Полный текст статьи доступен по <a href='{url}'>ссылке</a>"
+    NO_SUMMARY = "📖 Полный текст доступен по <a href='{url}'>ссылке</a>"
     FULL_ARTICLE_LINK = "🔗 Подробнее: <a href='{url}'>Читать полностью</a>"
     PUBLISHED_AT = "📅 Опубликовано: {time} (МСК)"
     SOURCE_LINE = "📰 Источник: <a href='{url}'>{source}</a>"
     
-    # Контакты (замените на свои)
     CONTACT_LINK_TEXT = "📩 Связаться с нами"
-    CONTACT_LINK_URL = "https://t.me/ваш_контакт"
+    CONTACT_LINK_URL = "https://t.me/School_of_sport"  # ЗАМЕНИТЕ
     GROUP_LINK_TEXT = "💬 Обсудить в чате с родителями"
-    GROUP_LINK_URL = "https://t.me/ваша_группа"
+    GROUP_LINK_URL = "https://t.me/OG_ZHUKOV_JUDO_TEAM"    # ЗАМЕНИТЕ
     
-    # Эмодзи для разделов
     SPORT_EMOJIS = {
         "дзюдо": "🥋",
         "футбол": "⚽",
         "гимнастика": "🤸",
         "хоккей": "🏒",
-        "фигурное катание": "⛸️",
         "плавание": "🏊",
         "легкая атлетика": "🏃",
-        "теннис": "🎾",
-        "баскетбол": "🏀",
-        "волейбол": "🏐",
         "спорт": "🏆"
     }
     
-    # Возрастные категории
     AGE_CATEGORIES = {
         "дошкольники": "👶 3-6 лет",
-        "школьники": "🧒 7-13 лет", 
-        "подростки": "👦 14-18 лет",
-        "юниоры": "🏅 19-21 год"
+        "школьники": "🧒 7-13 лет",
+        "подростки": "👦 14-18 лет"
     }
     
     @classmethod
@@ -175,32 +158,21 @@ class Messages:
             return cls.AGE_CATEGORIES["школьники"]
         elif "подрост" in title_lower or "14-" in title_lower or "15-" in title_lower or "16-" in title_lower or "17-" in title_lower or "18-" in title_lower:
             return cls.AGE_CATEGORIES["подростки"]
-        elif "юниор" in title_lower or "19-" in title_lower or "20-" in title_lower or "21-" in title_lower:
-            return cls.AGE_CATEGORIES["юниоры"]
         return "👨‍👩‍👦 Для всех возрастов"
 
-# --- Российские спортивные СМИ ---
+# --- Российские источники ---
 class RussianSportsSources:
     SOURCES = [
-        "sport-express.ru",
-        "championat.com", 
-        "rsport.ria.ru",
-        "matchtv.ru",
-        "sports.ru",
-        "russian.rt.com/sport",
-        "tass.ru/sport",
-        "sovsport.ru",
-        "mk.ru/sport",
-        "rg.ru/sport",
-        "kuban.rbc.ru/sport"
+        "sport-express.ru", "championat.com", "rsport.ria.ru",
+        "matchtv.ru", "sports.ru", "tass.ru/sport",
+        "sovsport.ru", "mk.ru/sport", "rg.ru/sport"
     ]
     
     @classmethod
     def is_russian_source(cls, url: str) -> bool:
         if not url:
             return False
-        url_lower = url.lower()
-        return any(source in url_lower for source in cls.SOURCES)
+        return any(source in url.lower() for source in cls.SOURCES)
 
 # --- Функции времени ---
 def get_moscow_time() -> timezone:
@@ -217,45 +189,36 @@ def format_russian_time(time_str: Optional[str]) -> str:
         if time_str.endswith('Z'):
             time_str = time_str[:-1] + '+00:00'
         dt = datetime.fromisoformat(time_str)
-        moscow_tz = get_moscow_time()
-        dt_moscow = dt.astimezone(moscow_tz)
+        dt_moscow = dt.astimezone(get_moscow_time())
         return dt_moscow.strftime('%d %B %Y, %H:%M')
     except (ValueError, TypeError):
         return time_str.split('T')[0] if time_str else Messages.UNKNOWN_TIME
 
-# --- Генерация хештегов для детей ---
+# --- Генерация хештегов ---
 def get_family_hashtags(title: str, max_tags: int = 6) -> str:
-    """Генерирует семейные хештеги"""
     try:
         tags = jieba.analyse.extract_tags(title, topK=4)
-        filtered = []
-        for tag in tags:
-            if len(tag) > 1 and not tag.isdigit():
-                filtered.append(tag)
+        filtered = [tag for tag in tags if len(tag) > 1 and not tag.isdigit()]
         
-        # Базовые семейные теги
         base_tags = ["Россия", "Спорт", "Дети", "Родители"]
         
-        # Добавляем теги по теме
         if "дзюдо" in title.lower():
             base_tags.append("Дзюдо")
         if "футбол" in title.lower():
             base_tags.append("Футбол")
         if "гимнастика" in title.lower():
             base_tags.append("Гимнастика")
-        if "мотивация" in title.lower() or "успех" in title.lower():
+        if "мотивация" in title.lower():
             base_tags.append("Мотивация")
-        if "питание" in title.lower() or "еда" in title.lower():
+        if "питание" in title.lower():
             base_tags.append("ЗдоровоеПитание")
         if "психология" in title.lower():
             base_tags.append("ДетскаяПсихология")
-        if "соревнование" in title.lower() or "турнир" in title.lower():
-            base_tags.append("СпортивныеСоревнования")
         
         all_tags = list(set(filtered + base_tags))
         return " ".join([f"#{tag}" for tag in all_tags[:max_tags]])
     except Exception:
-        return "#Спорт #Дети #Россия #Семья"
+        return "#Спорт #Дети #Россия"
 
 # --- Клиент GNews API ---
 class GNewsClient:
@@ -266,14 +229,12 @@ class GNewsClient:
         self.timeout = timeout
         self.session = requests.Session()
         self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (FamilySportsBot/1.0; Russia)',
-            'Accept-Language': 'ru-RU,ru;q=0.9'
+            'User-Agent': 'FamilySportsBot/1.0',
+            'Accept-Language': 'ru-RU'
         })
     
     def _build_family_sports_query(self) -> str:
-        """Поисковый запрос для семейного спорта"""
         queries = [
-            # Соревнования
             '"первенство России" дзюдо дети',
             '"юные дзюдоисты" Россия',
             '"детская лига дзюдо"',
@@ -281,23 +242,13 @@ class GNewsClient:
             '"детский футбол" Россия',
             '"юные футболисты"',
             '"детская художественная гимнастика"',
-            '"спортивные школы" дзюдо Россия',
-            
-            # Мотивация и развитие
             '"мотивация для юных спортсменов"',
-            '"спорт и дети" психология',
             '"правильное питание" юные спортсмены',
-            '"детский тренер" советы',
-            
-            # Воспитание
-            '"родители и спорт" дети',
-            '"воспитание чемпионов"',
-            '"детский спорт" советы'
+            '"родители и спорт" дети'
         ]
         return " OR ".join(queries)
     
     def search_family_sports(self, max_results: int = 25) -> List[Dict[str, Any]]:
-        """Поиск семейных спортивных новостей"""
         query = self._build_family_sports_query()
         params = {
             'q': query,
@@ -314,43 +265,30 @@ class GNewsClient:
             data = response.json()
             articles = data.get('articles', [])
             
-            # Фильтруем российские новости
-            family_articles = self._filter_family_articles(articles)
-            logger.info(f"📰 Найдено {len(family_articles)} семейных статей")
+            family_articles = []
+            for article in articles:
+                title = article.get('title', '').lower()
+                content = title + " " + article.get('description', '').lower()
+                url = article.get('url', '')
+                
+                family_keywords = ['дети', 'детский', 'родители', 'юный', 'школьник']
+                sport_keywords = ['дзюдо', 'футбол', 'гимнастика', 'спорт']
+                
+                is_family = any(k in content for k in family_keywords)
+                is_sport = any(k in content for k in sport_keywords)
+                is_russian = RussianSportsSources.is_russian_source(url)
+                
+                if (is_family or is_sport) and is_russian:
+                    family_articles.append(article)
+            
+            logger.info(f"📰 Найдено {len(family_articles)} статей")
             return family_articles
             
         except Exception as e:
             logger.error(f"Ошибка запроса: {e}")
             return []
-    
-    def _filter_family_articles(self, articles: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Фильтрует статьи для семейной аудитории"""
-        filtered = []
-        for article in articles:
-            title = article.get('title', '').lower()
-            description = article.get('description', '').lower()
-            content = title + " " + description
-            url = article.get('url', '')
-            
-            # Семейные ключевые слова
-            family_keywords = ['дети', 'детский', 'родители', 'семья', 'юный', 'юные', 
-                             'школьник', 'малыш', 'подросток', 'школа', 'воспитанник',
-                             'спортивная школа', 'тренер', 'соревнование', 'первенство']
-            
-            # Спортивные ключевые слова
-            sport_keywords = ['дзюдо', 'футбол', 'гимнастика', 'спорт', 'тренировка', 
-                            'чемпион', 'победа', 'сборная', 'турнир', 'федерация']
-            
-            is_family = any(keyword in content for keyword in family_keywords)
-            is_sport = any(keyword in content for keyword in sport_keywords)
-            is_russian = RussianSportsSources.is_russian_source(url)
-            
-            if (is_family or is_sport) and is_russian:
-                filtered.append(article)
-        
-        return filtered
 
-# --- Хранилище отправленных статей ---
+# --- Хранилище ---
 class SentArticlesStore:
     def __init__(self, articles_file: str = 'sent_articles.txt', 
                  titles_file: str = 'sent_titles.txt'):
@@ -377,7 +315,7 @@ class SentArticlesStore:
         with open(self.titles_file, 'a', encoding='utf-8') as f:
             f.write(title + '\n')
 
-# --- Парсер статей ---
+# --- Парсер ---
 class ArticleScraper:
     def __init__(self, timeout: int = 35000):
         self.timeout = timeout
@@ -387,7 +325,6 @@ class ArticleScraper:
         try:
             await page.goto(url, timeout=self.timeout, wait_until='domcontentloaded')
             
-            # Извлечение времени
             time_selectors = ['meta[property="article:published_time"]', 'time', '.pub_date']
             for selector in time_selectors:
                 element = await page.query_selector(selector)
@@ -397,13 +334,16 @@ class ArticleScraper:
                         pub_time = content.strip()
                         break
             
-            # Извлечение содержания
-            content_selectors = ['article', '.article-content', '.post-body', '.content', '#article_content']
+            content_selectors = ['article', '.article-content', '.post-body', '.content']
             for selector in content_selectors:
                 element = await page.query_selector(selector)
                 if element:
                     paragraphs = await element.query_selector_all('p')
-                    summary_parts = [await p.inner_text() for p in paragraphs[:4] if await p.inner_text()]
+                    summary_parts = []
+                    for p in paragraphs[:4]:
+                        text = await p.inner_text()
+                        if text and text.strip():
+                            summary_parts.append(text.strip())
                     if summary_parts:
                         summary = "\n\n".join(summary_parts)
                         break
@@ -412,7 +352,7 @@ class ArticleScraper:
             logger.error(f"Ошибка загрузки: {e}")
         return pub_time, summary
 
-# --- Отправка сообщений ---
+# --- Отправка ---
 class TelegramSender:
     def __init__(self, bot: telegram.Bot, chat_id: str):
         self.bot = bot
@@ -428,44 +368,28 @@ class TelegramSender:
         if not title or not url:
             return False
         
-        # Определяем категории
-        sport_emoji = Messages.get_sport_emoji(title)
+        emoji = Messages.get_sport_emoji(title)
         age_category = Messages.get_age_category(title)
-        display_time = format_russian_time(pub_time) if pub_time else format_russian_time(article.get('publishedAt'))
+        display_time = format_russian_time(pub_time) or format_russian_time(article.get('publishedAt'))
         hashtags = get_family_hashtags(title)
         
-        # Мотивационные фразы
         child_motivation = MotivationMessages.get_random_child_motivation()
         parent_motivation = MotivationMessages.get_random_parent_motivation()
         sports_tip = SportsTips.get_random_tip()
         
-        # Подготовка текста
         summary_text = summary if summary else article.get('description', '')
         if summary_text and len(summary_text) > 250:
             summary_text = summary_text[:250] + "..."
         if not summary_text:
             summary_text = Messages.NO_SUMMARY.format(url=url)
         
-        # Формирование сообщения
-        caption = self._build_caption(
-            title, url, source_name, display_time, 
-            hashtags, summary_text, sport_emoji, 
-            age_category, child_motivation, parent_motivation, sports_tip
-        )
-        
-        return await self._send_with_fallback(image_url, caption)
-    
-    def _build_caption(self, title: str, url: str, source: str, time_str: str,
-                       hashtags: str, summary: str, emoji: str, age: str,
-                       child_motivation: str, parent_motivation: str, tip: str) -> str:
-        """Собирает сообщение для всей семьи"""
         parts = [
             f"{Messages.CHANNEL_TOPIC_HEADER}\n",
             f"{emoji} <b>{title}</b>\n",
-            f"👨‍👩‍👦 <i>{age}</i>\n",
+            f"👨‍👩‍👦 <i>{age_category}</i>\n",
             "",
             "📖 <b>Краткое содержание:</b>",
-            summary,
+            summary_text,
             "",
             "🌟 <b>Для детей:</b>",
             f"✨ {child_motivation}",
@@ -474,11 +398,11 @@ class TelegramSender:
             f"💡 {parent_motivation}",
             "",
             "🏥 <b>Полезный совет:</b>",
-            f"⚠️ {tip}",
+            f"⚠️ {sports_tip}",
             "",
             Messages.FULL_ARTICLE_LINK.format(url=url),
-            Messages.PUBLISHED_AT.format(time=time_str),
-            Messages.SOURCE_LINE.format(url=url, source=source),
+            Messages.PUBLISHED_AT.format(time=display_time),
+            Messages.SOURCE_LINE.format(url=url, source=source_name),
             "",
             f"📌 {hashtags}",
             "",
@@ -491,12 +415,8 @@ class TelegramSender:
         caption = "\n".join(part for part in parts if part.strip() or part == "")
         
         if len(caption) > self.max_caption_length:
-            # Обрезаем, сохраняя важные части
             caption = caption[:self.max_caption_length - 100] + "\n...\n" + parts[-4] + "\n" + parts[-3]
         
-        return caption
-    
-    async def _send_with_fallback(self, image_url: Optional[str], caption: str) -> bool:
         try:
             if image_url:
                 await self.bot.send_photo(
@@ -538,7 +458,6 @@ class FamilySportsBot:
     
     async def run(self) -> None:
         logger.info("🏆 Запуск бота для семейного спорта в России")
-        logger.info("👨‍👩‍👦 Спорт для родителей и детей")
         
         browser: Optional[Browser] = None
         try:
@@ -565,8 +484,6 @@ class FamilySportsBot:
             if browser:
                 await browser.close()
                 logger.info("🔒 Браузер закрыт")
-        
-        logger.info("✅ Цикл завершен")
     
     def _filter_new_articles(self, articles: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         new_articles = []
