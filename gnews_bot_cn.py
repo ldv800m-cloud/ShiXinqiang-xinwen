@@ -38,7 +38,7 @@ class Config:
     send_interval_seconds: int = 15
     api_timeout: int = 30
     browser_timeout: int = 35000
-    max_search_results: int = 25  # ← ЭТУ СТРОКУ НУЖНО ДОБАВИТЬ 
+    max_search_results: int = 25
     
     @classmethod
     def from_env(cls) -> 'Config':
@@ -55,7 +55,10 @@ class Config:
             telegram_chat_id=chat_id,
             gnews_api_key=api_key,
             max_articles_to_send=int(os.getenv("MAX_ARTICLES_TO_SEND", "5")),
-            send_interval_seconds=int(os.getenv("SEND_INTERVAL_SECONDS", "15"))
+            send_interval_seconds=int(os.getenv("SEND_INTERVAL_SECONDS", "15")),
+            api_timeout=int(os.getenv("API_TIMEOUT", "30")),
+            browser_timeout=int(os.getenv("BROWSER_TIMEOUT", "35000")),
+            max_search_results=int(os.getenv("MAX_SEARCH_RESULTS", "25"))
         )
 
 # --- Мотивационные фразы для детей ---
@@ -122,9 +125,9 @@ class Messages:
     SOURCE_LINE = "📰 Источник: <a href='{url}'>{source}</a>"
     
     CONTACT_LINK_TEXT = "📩 Связаться с нами"
-    CONTACT_LINK_URL = "https://t.me/School_of_sport"  # ЗАМЕНИТЕ
+    CONTACT_LINK_URL = "https://t.me/School_of_sport"
     GROUP_LINK_TEXT = "💬 Обсудить в чате с родителями"
-    GROUP_LINK_URL = "https://t.me/OG_ZHUKOV_JUDO_TEAM"    # ЗАМЕНИТЕ
+    GROUP_LINK_URL = "https://t.me/OG_ZHUKOV_JUDO_TEAM"
     
     SPORT_EMOJIS = {
         "дзюдо": "🥋",
@@ -260,21 +263,17 @@ class GNewsClient:
         }
         
         logger.info("🏆 Поиск семейных спортивных новостей...")
-       try:
-    response = self.session.get(f"{self.BASE_URL}/search", params=params, timeout=self.timeout)
-    response.raise_for_status()
-    data = response.json()
-    articles = data.get('articles', [])
-    
-    if not articles:
-        logger.warning("⚠️ GNews API вернул пустой список статей.")
-        return []
-    
-    logger.info(f"📰 GNews API вернул {len(articles)} статей до фильтрации")
-    # ... остальная логика фильтрации ...
-except requests.exceptions.RequestException as e:
-    logger.error(f"❌ Ошибка запроса к GNews API: {e}")
-    return []
+        try:
+            response = self.session.get(f"{self.BASE_URL}/search", params=params, timeout=self.timeout)
+            response.raise_for_status()
+            data = response.json()
+            articles = data.get('articles', [])
+            
+            if not articles:
+                logger.warning("⚠️ GNews API вернул пустой список статей.")
+                return []
+            
+            logger.info(f"📰 GNews API вернул {len(articles)} статей до фильтрации")
             
             family_articles = []
             for article in articles:
@@ -292,11 +291,11 @@ except requests.exceptions.RequestException as e:
                 if (is_family or is_sport) and is_russian:
                     family_articles.append(article)
             
-            logger.info(f"📰 Найдено {len(family_articles)} статей")
+            logger.info(f"📰 Найдено {len(family_articles)} статей после фильтрации")
             return family_articles
             
-        except Exception as e:
-            logger.error(f"Ошибка запроса: {e}")
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Ошибка запроса к GNews API: {e}")
             return []
 
 # --- Хранилище ---
@@ -496,32 +495,20 @@ class FamilySportsBot:
                 await browser.close()
                 logger.info("🔒 Браузер закрыт")
     
-   def _filter_new_articles(self, articles: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    new_articles = []
-    sent_titles = self.store.load_titles()
-    sent_urls = self.store.load_urls()
-    
-    for article in articles:
-        url = article.get('url')
-        title = article.get('title')
-        # Проверяем, что url и title существуют и не отправлены ранее
-        if url and title and url not in sent_urls and title not in sent_titles:
-            new_articles.append(article)
-            # Останавливаемся, когда набрали нужное количество
-            if len(new_articles) >= self.config.max_articles_to_send:
-                break
-    
-    return new_articles
+    def _filter_new_articles(self, articles: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        new_articles = []
+        sent_titles = self.store.load_titles()
+        sent_urls = self.store.load_urls()
         
         for article in articles:
             url = article.get('url')
             title = article.get('title')
             if url and title and url not in sent_urls and title not in sent_titles:
                 new_articles.append(article)
-                if len(new_articles) >= self.config.max_articles_to_send * 2:
+                if len(new_articles) >= self.config.max_articles_to_send:
                     break
         
-        return new_articles[:self.config.max_articles_to_send]
+        return new_articles
     
     async def _send_articles(self, articles: List[Dict[str, Any]], page: Page) -> None:
         sent_count = 0
